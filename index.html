@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>段码屏 · 8 段数码管教学演示</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 26px;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1200px 620px at 50% -10%, #1d2b3a 0%, #0a0e14 55%, #05070a 100%);
+    color: #e6eef8;
+  }
+
+  /* ============ 外框 ============ */
+  .app {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 30px 34px 26px;
+    border-radius: 26px;
+    background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.015));
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 30px 80px rgba(0,0,0,.7);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-align: center;
+    color: #9fd0ff;
+    text-shadow: 0 0 18px rgba(80,170,255,.45);
+  }
+  h1 em {
+    font-style: normal;
+    color: #ff5a4f;
+    text-shadow: 0 0 18px rgba(255,90,79,.6);
+  }
+
+  .body { display: flex; gap: 34px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+  /* ============ 显示屏 ============ */
+  .screen {
+    padding: 24px 26px;
+    border-radius: 20px;
+    background: radial-gradient(circle at 50% 40%, #0d131c, #05070a 78%);
+    border: 1px solid #1b2530;
+    box-shadow: inset 0 0 60px rgba(0,0,0,.95), 0 0 40px rgba(0,0,0,.5);
+  }
+
+  .display {
+    position: relative;
+    width: 186px;
+    height: 254px;
+  }
+
+  /* ---- 单个“灯” ---- */
+  .seg {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #2f3b4a;
+    background: #141a22;
+    border-radius: 9px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.02);
+    transition: background-color .25s ease, box-shadow .3s ease, color .25s ease;
+    user-select: none;
+  }
+
+  /* 点亮状态 */
+  .seg.on {
+    background: linear-gradient(180deg, #ff7a6e, #e01c12);
+    color: rgba(255,255,255,.92);
+    box-shadow:
+      0 0 10px rgba(255,59,48,.95),
+      0 0 26px rgba(255,59,48,.65),
+      0 0 52px rgba(255,59,48,.32),
+      inset 0 0 8px rgba(255,255,255,.35);
+  }
+
+  @keyframes pulse {
+    0%   { filter: brightness(2.6) saturate(1.3); }
+    100% { filter: brightness(1); }
+  }
+  .seg.pulse { animation: pulse .38s ease-out; }
+
+  /* ============ 控制面板 ============ */
+  .panel { display: flex; flex-direction: column; gap: 15px; width: 300px; }
+
+  .label {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #7d8ea3;
+  }
+
+  .keys {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 9px;
+  }
+
+  .key {
+    padding: 11px 0;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 11px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: #dfe8f3;
+    cursor: pointer;
+    transition: all .16s ease;
+  }
+  .key:hover { background: rgba(255,255,255,.15); transform: translateY(-2px); }
+  .key:active { transform: translateY(0) scale(.96); }
+  .key.active {
+    background: linear-gradient(180deg, #ff6a5e, #e01c12);
+    border-color: #ff8a80;
+    color: #fff;
+    box-shadow: 0 0 16px rgba(255,59,48,.7);
+  }
+
+  .opts {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    color: #b8c7d8;
+    cursor: pointer;
+    user-select: none;
+  }
+  .opts input { width: 16px; height: 16px; accent-color: #ff3b30; cursor: pointer; }
+
+  /* ---- 段码读数 ---- */
+  .readout {
+    display: grid;
+    gap: 9px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.4);
+    border: 1px solid rgba(255,255,255,.07);
+  }
+  .readout .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .readout .k { font-size: 12px; color: #7d8ea3; }
+  .readout .v {
+    font-family: "SFMono-Regular", Consolas, "Courier New", monospace;
+    font-size: 13px;
+    color: #9fe0ff;
+    letter-spacing: 1px;
+  }
+  .readout .v.big { font-size: 17px; color: #ff8a80; }
+
+  .actions { display: flex; gap: 9px; }
+  .actions button {
+    flex: 1;
+    padding: 10px 0;
+    font-size: 13px;
+    font-family: inherit;
+    border-radius: 11px;
+    border: 1px solid rgba(255,255,255,.13);
+    background: rgba(255,255,255,.06);
+    color: #cfe0f2;
+    cursor: pointer;
+    transition: all .16s ease;
+  }
+  .actions button:hover { background: rgba(255,255,255,.15); }
+  .actions button.primary {
+    background: linear-gradient(180deg, #3d9cff, #1e6fd9);
+    border-color: #6fb8ff;
+    color: #fff;
+    box-shadow: 0 0 16px rgba(61,156,255,.45);
+  }
+
+  /* ============ 段码表 ============ */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+  }
+  th, td {
+    padding: 5px 8px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  th { color: #7d8ea3; font-weight: 500; letter-spacing: 1px; }
+  td {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    color: #c7d6e6;
+  }
+  td.segs { color: #8fb8d8; letter-spacing: 1px; }
+  tr.hl td {
+    background: rgba(255,59,48,.15);
+    color: #ffb3ad;
+  }
+  tr.hl td.segs { color: #ffb3ad; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>段码屏 · <em>8 段数码管</em> 教学演示</h1>
+
+  <div class="body">
+    <!-- ===== 段码屏 ===== -->
+    <div class="screen">
+      <div class="display" id="display">
+        <div class="seg" id="seg-a" style="left:40px; top:0px;  width:100px; height:18px;">a</div>
+        <div class="seg" id="seg-b" style="left:140px;top:20px; width:18px;  height:96px;">b</div>
+        <div class="seg" id="seg-c" style="left:140px;top:138px;width:18px;  height:96px;">c</div>
+        <div class="seg" id="seg-d" style="left:40px; top:236px;width:100px; height:18px;">d</div>
+        <div class="seg" id="seg-e" style="left:22px; top:138px;width:18px;  height:96px;">e</div>
+        <div class="seg" id="seg-f" style="left:22px; top:20px; width:18px;  height:96px;">f</div>
+        <div class="seg" id="seg-g" style="left:40px; top:118px;width:100px; height:18px;">g</div>
+        <div class="seg" id="seg-dp" style="left:168px;top:236px;width:18px; height:18px; border-radius:50%;"></div>
+      </div>
+    </div>
+
+    <!-- ===== 控制面板 ===== -->
+    <div class="panel">
+      <div class="label">输入数字（也可直接按键盘 0-9）</div>
+      <div class="keys" id="keys"></div>
+
+      <label class="opts">
+        <input type="checkbox" id="dotChk">
+        <span>点亮小数点 dp（第 8 个灯）</span>
+      </label>
+
+      <div class="readout">
+        <div class="row"><span class="k">当前显示</span><span class="v big" id="ro-digit">—</span></div>
+        <div class="row"><span class="k">点亮段</span><span class="v" id="ro-segs">—</span></div>
+        <div class="row"><span class="k">段码 dp g f e d c b a</span><span class="v" id="ro-bin">—</span></div>
+        <div class="row"><span class="k">十六进制</span><span class="v" id="ro-hex">—</span></div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="demoBtn">▶ 自动演示 0-9</button>
+        <button id="allBtn">全部点亮</button>
+        <button id="clrBtn">清空</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 段码真值表 ===== -->
+  <table>
+    <thead>
+      <tr><th>数字</th><th>点亮段</th><th>dp g f e d c b a</th><th>十六进制</th></tr>
+    </thead>
+    <tbody id="mapBody"></tbody>
+  </table>
+</div>
+
+<script>
+/* =========================================================
+   1. 段码定义：共阴极，1 = 点亮
+   ========================================================= */
+const SEG_ORDER  = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'dp'];  // 8 个灯（点亮顺序）
+const CODE_ORDER = ['dp', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];  // 段码位序（高位→低位）
+
+const CODE = {
+  '0': ['a', 'b', 'c', 'd', 'e', 'f'],
+  '1': ['b', 'c'],
+  '2': ['a', 'b', 'd', 'e', 'g'],
+  '3': ['a', 'b', 'c', 'd', 'g'],
+  '4': ['b', 'c', 'f', 'g'],
+  '5': ['a', 'c', 'd', 'f', 'g'],
+  '6': ['a', 'c', 'd', 'e', 'f', 'g'],
+  '7': ['a', 'b', 'c'],
+  '8': ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+  '9': ['a', 'b', 'c', 'd', 'f', 'g']
+};
+
+/* =========================================================
+   2. 元素引用
+   ========================================================= */
+const els = {};
+SEG_ORDER.forEach(s => els[s] = document.getElementById('seg-' + s));
+
+const dotChk   = document.getElementById('dotChk');
+const keysBox  = document.getElementById('keys');
+const demoBtn  = document.getElementById('demoBtn');
+
+let currentDigit = null;   // 当前数字（字符串或 null）
+let timers = [];           // 动画定时器
+
+/* =========================================================
+   3. 核心渲染
+   ========================================================= */
+function clearTimers() {
+  timers.forEach(clearTimeout);
+  timers = [];
+}
+
+function turnOn(el) {
+  el.classList.add('on');
+  el.classList.remove('pulse');
+  void el.offsetWidth;          // 强制重排，让动画可重复触发
+  el.classList.add('pulse');
+}
+
+/**
+ * 让数码管显示某数字
+ * @param {string|null} digit 数字字符，null = 全灭
+ * @param {boolean} dot       是否点亮小数点
+ * @param {boolean} animate   是否逐段点亮
+ */
+function render(digit, dot, animate = true) {
+  clearTimers();
+
+  const active = new Set(digit == null ? [] : CODE[digit]);
+  if (digit != null && dot) active.add('dp');
+
+  // ① 先熄灭所有不该亮的段
+  SEG_ORDER.forEach(s => {
+    if (!active.has(s)) els[s].classList.remove('on', 'pulse');
+  });
+
+  // ② 再按顺序依次点亮（形成扫描式动画）
+  let k = 0;
+  SEG_ORDER.forEach(s => {
+    if (!active.has(s)) return;
+    const el = els[s];
+    const delay = animate ? k * 45 : 0;
+    k++;
+    if (delay === 0) turnOn(el);
+    else timers.push(setTimeout(() => turnOn(el), delay));
+  });
+}
+
+/* =========================================================
+   4. 读数 / 表格联动
+   ========================================================= */
+const roDigit = document.getElementById('ro-digit');
+const roSegs  = document.getElementById('ro-segs');
+const roBin   = document.getElementById('ro-bin');
+const roHex   = document.getElementById('ro-hex');
+
+function updateReadout(digit, dot) {
+  if (digit == null) {
+    roDigit.textContent = '—';
+    roSegs.textContent  = '—';
+    roBin.textContent   = '—';
+    roHex.textContent   = '—';
+    return;
+  }
+  const on = new Set(CODE[digit]);
+  if (dot) on.add('dp');
+
+  const bin = CODE_ORDER.map(s => on.has(s) ? '1' : '0').join('');
+  const hex = '0x' + parseInt(bin, 2).toString(16).toUpperCase().padStart(2, '0');
+
+  roDigit.textContent = digit + (dot ? '.' : '');
+  roSegs.textContent  = SEG_ORDER.filter(s => on.has(s)).join(' ');
+  roBin.textContent   = bin.slice(0, 4) + ' ' + bin.slice(4);
+  roHex.textContent   = hex;
+}
+
+function highlightRow(digit) {
+  document.querySelectorAll('#mapBody tr').forEach(tr => {
+    tr.classList.toggle('hl', tr.dataset.d === digit);
+  });
+}
+
+/* =========================================================
+   5. 统一入口
+   ========================================================= */
+const keyBtns = [];
+
+function selectDigit(digit, animate = true) {
+  currentDigit = digit;
+  const dot = dotChk.checked;
+  render(digit, dot, animate);
+  updateReadout(digit, dot);
+  highlightRow(digit);
+  keyBtns.forEach(b => b.classList.toggle('active', b.dataset.d === digit));
+}
+
+/* =========================================================
+   6. 构建 0-9 按键
+   ========================================================= */
+for (let d = 0; d <= 9; d++) {
+  const b = document.createElement('button');
+  b.className = 'key';
+  b.dataset.d = String(d);
+  b.textContent = d;
+  b.addEventListener('click', () => {
+    stopDemo();
+    selectDigit(String(d));
+  });
+  keysBox.appendChild(b);
+  keyBtns.push(b);
+}
+
+/* =========================================================
+   7. 构建段码真值表
+   ========================================================= */
+const mapBody = document.getElementById('mapBody');
+for (let d = 0; d <= 9; d++) {
+  const on  = new Set(CODE[String(d)]);
+  const bin = CODE_ORDER.map(s => on.has(s) ? '1' : '0').join('');
+  const hex = '0x' + parseInt(bin, 2).toString(16).toUpperCase().padStart(2, '0');
+  const segs = ['a','b','c','d','e','f','g'].filter(s => on.has(s)).join(' ');
+
+  const tr = document.createElement('tr');
+  tr.dataset.d = String(d);
+  tr.innerHTML = `<td>${d}</td><td class="segs">${segs}</td><td>${bin}</td><td>${hex}</td>`;
+  tr.addEventListener('click', () => { stopDemo(); selectDigit(String(d)); });
+  tr.style.cursor = 'pointer';
+  mapBody.appendChild(tr);
+}
+
+/* =========================================================
+   8. 小数点开关
+   ========================================================= */
+dotChk.addEventListener('change', () => {
+  render(currentDigit, dotChk.checked, false);
+  updateReadout(currentDigit, dotChk.checked);
+});
+
+/* =========================================================
+   9. 键盘输入
+   ========================================================= */
+document.addEventListener('keydown', e => {
+  if (/^[0-9]$/.test(e.key)) {
+    stopDemo();
+    selectDigit(e.key);
+  } else if (e.key === 'Escape') {
+    stopDemo();
+    selectDigit(null, false);
+  }
+});
+
+/* =========================================================
+   10. 自动演示
+   ========================================================= */
+let demoRunning = false;
+let demoTimer = null;
+let demoIdx = 0;
+
+function startDemo() {
+  if (demoRunning) return;
+  demoRunning = true;
+  demoBtn.textContent = '⏸ 暂停演示';
+  demoBtn.classList.remove('primary');
+  demoIdx = 0;
+
+  const step = () => {
+    selectDigit(String(demoIdx));
+    demoIdx = (demoIdx + 1) % 10;
+  };
+  step();
+  demoTimer = setInterval(step, 1100);
+}
+
+function stopDemo() {
+  if (!demoRunning) return;
+  demoRunning = false;
+  clearInterval(demoTimer);
+  demoTimer = null;
+  demoBtn.textContent = '▶ 自动演示 0-9';
+  demoBtn.classList.add('primary');
+}
+
+demoBtn.addEventListener('click', () => {
+  demoRunning ? stopDemo() : startDemo();
+});
+
+/* =========================================================
+   11. 全部点亮 / 清空
+   ========================================================= */
+document.getElementById('allBtn').addEventListener('click', () => {
+  stopDemo();
+  dotChk.checked = true;
+  selectDigit('8');
+});
+
+document.getElementById('clrBtn').addEventListener('click', () => {
+  stopDemo();
+  dotChk.checked = false;
+  selectDigit(null, false);
+});
+
+/* =========================================================
+   12. 初始化：先来一次全段自检动画，再熄灭
+   ========================================================= */
+window.addEventListener('load', () => {
+  // 自检：所有 8 个灯依次点亮
+  SEG_ORDER.forEach((s, i) => {
+    timers.push(setTimeout(() => turnOn(els[s]), i * 90));
+  });
+  // 全部亮完后再熄灭
+  timers.push(setTimeout(() => {
+    SEG_ORDER.forEach(s => els[s].classList.remove('on', 'pulse'));
+  }, SEG_ORDER.length * 90 + 700));
+});
+</script>
+
+</body>
+</html>
